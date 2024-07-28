@@ -23,11 +23,15 @@ jobs:
         run: npm install
         working-directory: ./server
 
-      - name: Run server tests
-        working-directory: ./server
-      - run: |
+      - name: Set up environment variables
+        run: |
           touch .env
-          echo "${{ secrets.MONGODB_URL }}" > .env
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+        working-directory: ./server
+
+      - name: Start server
+        run: npm start
+        working-directory: ./server
 
   build-client:
     runs-on: ubuntu-latest
@@ -45,5 +49,6 @@ jobs:
         run: npm install
         working-directory: ./toDoList
 
-      - name: Run client tests
+      - name: Run client in development mode
+        run: npm run dev
         working-directory: ./toDoList
