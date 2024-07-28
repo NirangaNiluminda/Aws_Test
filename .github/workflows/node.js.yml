@@ -1,28 +1,67 @@
-name: Node.js CI
+name: Node.js CI/CD
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-server:
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        node-version: [20.x]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Use Node.js ${{ matrix.node-version }} for Server
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./server
+      - name: Install Server Dependencies
+        run: |
+          cd server
+          npm ci
 
-      - name: Run tests
-        run: npm test
-        working-directory: ./server
+      - name: Set up Environment Variables for Server
+        run: |
+          cd server
+          touch .env
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+
+      - name: Restart Server using PM2
+        run: |
+          cd server
+          pm2 restart BackendAPI
+
+  build-client:
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ matrix.node-version }} for Client
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Client Dependencies
+        run: |
+          cd toDoList
+          npm ci
+
+      - name: Run Client Tests
+        run: |
+          cd toDoList
+          npm test
+
+      - name: Start Client in Development Mode
+        run: |
+          cd toDoList
+          npm run dev
