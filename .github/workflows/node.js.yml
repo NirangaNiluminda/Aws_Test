@@ -1,67 +1,54 @@
-name: Node.js CI/CD
+name: CI for Server and Client
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-server:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        node-version: [20.x]
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Use Node.js ${{ matrix.node-version }} for Server
+      - name: Set up Node.js for server
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version: '20.x'
 
-      - name: Install Server Dependencies
-        run: |
-          cd server
-          npm ci
+      - name: Install server dependencies
+        run: npm install
+        working-directory: ./server
 
-      - name: Set up Environment Variables for Server
+      - name: Set up environment variables
         run: |
-          cd server
           touch .env
           echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+        working-directory: ./server
 
-      - name: Restart Server using PM2
-        run: |
-          cd server
-          pm2 restart BackendAPI
+      - name: Run server tests
+        run: npm start
+        working-directory: ./server
 
   build-client:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        node-version: [20.x]
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Use Node.js ${{ matrix.node-version }} for Client
+      - name: Set up Node.js for client
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version: '20.x'
 
-      - name: Install Client Dependencies
-        run: |
-          cd toDoList
-          npm ci
+      - name: Install client dependencies
+        run: npm install
+        working-directory: ./toDoList
 
-      - name: Run Client Tests
-        run: |
-          cd toDoList
-          npm test
-
-      - name: Start Client in Development Mode
-        run: |
-          cd toDoList
-          npm run dev
+      - name: Run client in development mode
+        run: npm run dev
+        working-directory: ./toDoList
